@@ -156,13 +156,13 @@ wsServer.on('request', function(request) {
         // first message sent by user is their name
             if (playerName === false && name) {
                 // remember user name
-                console.log((new Date()) + ' User is known as: ' + name);
+                console.log((new Date()) + ' Player is connected as: ' + name);
                 
                 var existingPlayers = await players.getPlayers();
 
                 if (existingPlayers.length === 0) {
                     // opening table
-                    await openTable();
+                    await dealer.openTable();
 
                 }
                 console.log('players', existingPlayers);
