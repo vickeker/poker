@@ -327,9 +327,9 @@ const openTable = async () => {
         data.isStarted = false;
         data.readyToDeal = false;
         data.currBlind = {
-            "index": 1,
-            "smallBlind": 10, 
-            "bigBlind": 20
+            ...data.blinds[0],
+            index: 0,
+            timestamp: Date.now()
         };
         const newDealer = data;
         fs.writeFileSync(dealerFilePath, JSON.stringify(newDealer));
@@ -353,11 +353,6 @@ const closeTable = () => {
         data.history = [];
         data.isStarted = false;
         data.readyToDeal = false;
-        data.currBlind = {
-            "index": 1,
-            "smallBlind": 10, 
-            "bigBlind": 20
-        };
         const newDealer = data;
         fs.writeFileSync(dealerFilePath, JSON.stringify(newDealer));
         return true;
