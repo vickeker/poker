@@ -1,0 +1,67 @@
+[
+    {
+    
+      "id": 1,  
+      "name": "Booba",
+        "chipValue": 0,
+       "dealer": true,
+        "smallBlind": false,
+   "bigBlind": false,
+        "avatar": "avatar1",
+        "fold": true,
+        "call": true,
+        "raise": 0,
+  "showCard": false,
+  "betValue": 100,
+  "isPlayerTurn": false,
+  "isActive": true
+    },
+    {
+      "id": 2,  
+      "name": "Jimmy",
+        "chipValue": 0,
+       "dealer": false,
+        "smallBlind": true,
+     "bigBlind": false,
+        "avatar": "avatar2",
+        "fold": true,
+        "call": true,
+        "raise": 0,
+  "showCard": false,
+  "betValue": 0,
+  "isPlayerTurn": false,
+  "isActive": true
+    },
+    {
+      "id": 3,  
+      "name": "Mike",
+        "chipValue": 0,
+     "   dealer": false,
+        "smallBlind": false,
+    "bigBlind": true,
+        "avatar": "avatar3",
+       "fold": true,
+        "call": true,
+        "raise": 0,
+      "showCard": false,
+      "betValue": 0,
+      "isPlayerTurn": false,
+      "isActive": true
+    },
+    {
+      "id": 4,
+      "name": "Vic",
+      "chipValue": 0,
+   "dealer": false,
+      "smallBlind": false,
+    "bigBlind": false,
+      "avatar": "avatar5",
+      "fold": true,
+      "call": true,
+      "raise": 0,
+      "showCard": false,
+      "betValue": 50,
+      "isPlayerTurn": true,
+      "isActive": true
+  }
+]

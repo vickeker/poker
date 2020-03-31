@@ -1,0 +1,97 @@
+{
+    "flop": [
+
+    ],
+    "river": [
+
+    ],
+    "turn": [
+
+    ],
+    "burnt": [
+
+    ],
+    "players": {
+
+    },
+    "deck": [
+        "2C",
+        "2D",
+        "2H",
+        "2S",
+        "3C",
+        "3D",
+        "3H",
+        "3S",
+        "4C",
+        "4D",
+        "4H",
+        "4S",
+        "5C",
+        "5D",
+        "5H",
+        "5S",
+        "6C",
+        "6D",
+        "6H",
+        "6S",
+        "7C",
+        "7D",
+        "7H",
+        "7S",
+        "8C",
+        "8D",
+        "8H",
+        "8S",
+        "9C",
+        "9D",
+        "9H",
+        "9S",
+        "TC",
+        "TD",
+        "TH",
+        "TS",
+        "JC",
+        "JD",
+        "JH",
+        "JS",
+        "QC",
+        "QD",
+        "QH",
+        "QS",
+        "KC",
+        "KD",
+        "KH",
+        "KS",
+        "AC",
+        "AD",
+        "AH",
+        "AS"
+    ],
+    "blindTime": 900,
+    "currBlind": {
+        "index": 1,
+        "smallBlind": 10, 
+        "bigBlind": 20
+    },
+    "blinds": [
+        { "index": 1, "smallBlind": 10, "bigBlind": 20 },
+        { "index": 2, "smallBlind": 20, "bigBlind": 40 },
+        { "index": 3, "smallBlind": 50, "bigBlind": 100 },
+        { "index": 4, "smallBlind": 80, "bigBlind": 160 },
+        { "index": 5, "smallBlind": 100, "bigBlind": 200 },
+        { "index": 6, "smallBlind": 150, "bigBlind": 300 },
+        { "index": 7, "smallBlind": 200, "bigBlind": 400 },
+        { "index": 8, "smallBlind": 300, "bigBlind": 600 },
+        { "index": 9, "smallBlind": 500, "bigBlind": 1000 },
+        { "index": 10, "smallBlind": 800, "bigBlind": 1600 },
+        { "index": 11, "smallBlind": 1000, "bigBlind": 2000 },
+        { "index": 12, "smallBlind": 1500, "bigBlind": 3000 },
+        { "index": 13, "smallBlind": 2000, "bigBlind": 4000 }
+    ],
+    "suites": [ "D", "C", "S", "H"],
+    "values": ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A" ],
+    "history": [],
+    "isStarted": false,
+    "readyToDeal": true
+}
