@@ -167,9 +167,8 @@ wsServer.on('request', function(request) {
                 var json = JSON.stringify({ type:'message', data: obj });
                 wsServer.broadcast(json);
                 return;
-            }
-            // first message sent by user is their name
-            if (action === 'register') {
+            } else if (action === 'register') {
+                // first message sent by user is their name
                 var name = payload.value;
                 // remember user name
                 console.log((new Date()) + ' Player is connected as: ' + name);

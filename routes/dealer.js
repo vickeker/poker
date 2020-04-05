@@ -77,8 +77,6 @@ const players = require('./players.js');
         }
         var newCardIndex = Math.floor((Math.random() * availableCards.length));
         var newCard = availableCards[newCardIndex];
-        console.log(availableCards);
-        console.log(newCardIndex);
         // update burnt cards
         var data = fs.readFileSync(dealerFilePath);
         data = JSON.parse(data);
@@ -98,7 +96,6 @@ const players = require('./players.js');
             return dealCard();
         });
         var flop = await Promise.all(promises);
-        console.log('flop', flop);
         var data = fs.readFileSync(dealerFilePath);
         data = JSON.parse(data);
         data.flop = flop;
@@ -113,7 +110,6 @@ const players = require('./players.js');
   const dealRiver = async () => {
     try {
         var river = await dealCard();
-        console.log('river', river);
         var data = fs.readFileSync(dealerFilePath);
         data = JSON.parse(data);
         data.river = [river];
@@ -128,7 +124,6 @@ const players = require('./players.js');
   const dealerTurn = async () => {
     try {
         var turn = await dealCard();
-        console.log('turn', turn);
         var data = fs.readFileSync(dealerFilePath);
         data = JSON.parse(data);
         data.turn = [turn];
@@ -163,9 +158,6 @@ const players = require('./players.js');
         data.river = [];
         data.players = {};
         var availableCards = await getAvailableCards();
-        // console.log('gonna get playsers...');
-        // var pl = await players.getPlayers();
-        console.log('dealing card', pls);
         pls = pls.filter(a => a.isActive);
         var playersCards = {};
         pls.forEach(player => {
@@ -198,7 +190,6 @@ const players = require('./players.js');
         var currBlind = dealer.currBlind;
         var blindTime = dealer.blindTime*1000; // in ms
         if (time - blindTime > currBlind.startTime) {
-            console.log('updating blinds')
             // time to update blinds
             var blinds = dealer.blinds;
             var newBlindIndex = currBlind.index < blinds.length-1 ? currBlind.index+1 : currBlind.index;
@@ -206,7 +197,6 @@ const players = require('./players.js');
             newBlind.startTime = time;
             newBlind.index = newBlindIndex;
             dealer.currBlind = newBlind;
-            console.log(newBlind);
             fs.writeFileSync(dealerFilePath, JSON.stringify(dealer));
             await addHistory({
                 action: 'blind',
@@ -264,7 +254,6 @@ const players = require('./players.js');
     var data = fs.readFileSync(dealerFilePath);
     var dealer = JSON.parse(data);
     pl = pl.filter(a => a.isActive && !a.fold);
-    console.log(pl);
     var playersCards = [];
     pl.forEach(player => {
         playersCards.push({
@@ -283,7 +272,6 @@ const players = require('./players.js');
         })
         return Hand.solve(formattedHand);
     });
-    console.log(hands);
     var winner = Hand.winners(hands);
     winner = Array.isArray(winner) ? winner : [winner];
     var winnerPlayers = winner.map((value) => {
@@ -299,7 +287,6 @@ const players = require('./players.js');
     
     // add winner and hands to logs
     var promises = winnerPlayers.map(a => {
-        console.log(a);
         var log = {
             action: "win",
             playerId: a,
@@ -368,7 +355,6 @@ const isGameStarted = async () => {
 }
 
 const toSend = async (players, player) => {
-  console.log('client', player)
   var data = fs.readFileSync(dealerFilePath);
   data = JSON.parse(data);
   var playerCards = data.players;
