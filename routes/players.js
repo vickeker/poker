@@ -51,11 +51,11 @@ const getPlayer = async (id) => {
         call: true,
         raise: 0,
         showCard: false,
-        isActive: true,
-        isPlayerTurn: false
+        isActive: player.isActive,
+        isPlayerTurn: false,
+        connectionIndex: player.connectionIndex
       };
       players.push(newPlayer);
-      console.log('new list', players)
       fs.writeFileSync(playersFilePath, JSON.stringify(players));
       return true;
     } catch (e) {
@@ -157,19 +157,9 @@ const getPlayer = async (id) => {
     var nextBB = players[newBBIndex];
     var newTurnIndex = newBBIndex + 1 <= players.length-1 ? newBBIndex + 1 : 0;
     var newTurnPlayer = players[newTurnIndex];
-    console.log('dealerIndex', dealerIndex);
-    console.log('players length', players.length);
-    console.log('newSBrIndex', newSBIndex);
-    console.log('newBBIndex', newBBIndex);
-    console.log('newTurnIndex', newTurnIndex);
 
     if (nextDealer && nextSB && nextBB && newTurnPlayer && blinds && players.length > 0) {
       var promises = players.map(async pl => {
-        console.log('player id', pl.id);
-        console.log('dealer', nextDealer);
-        console.log('newSB', nextSB);
-        console.log('newBB', nextBB);
-        console.log('newTurn', newTurnPlayer);
         var dl = pl.id === nextDealer.id ? true : false;
         var sb = pl.id === nextSB.id ? true : false;
         var bb = pl.id === nextBB.id ? true : false;
@@ -230,12 +220,9 @@ const getPlayer = async (id) => {
     var players = JSON.parse(data);
     var potValue = 0;
     players.forEach(pl => {
-      console.log('player', pl.name);
-      console.log('bet', pl.betValue);
       potValue += pl.betValue;
     });
-    console.log('pot', potValue);
-    var updatePromises = winners.map(async id => {
+    var updatePromises = winners.map(id => {
       winValue = Math.floor(potValue / winners.length);
       var pl = players.find(a => parseInt(a.id) === parseInt(id));
       return updatePlayer({
@@ -244,6 +231,14 @@ const getPlayer = async (id) => {
       });
     });
     await Promise.all(updatePromises);
+    players = players.filter(a => a.isActive && !a.fold);
+    var updateShowCard = players.map(pl => {
+      return updatePlayer({
+        id: pl.id,
+        showCard: true
+      });
+    });
+    await Promise.all(updateShowCard);
   }
 
   const start = async (initChipValue) => {
@@ -275,6 +270,24 @@ const getPlayer = async (id) => {
 
   }
 
+  const hideCards = async () => {
+    const data = fs.readFileSync(playersFilePath);
+    var players = JSON.parse(data);
+    players = players.filter(pl => pl.isActive);
+    var updateShowCard = players.map(pl => {
+      return updatePlayer({
+        id: pl.id,
+        showCard: false
+      });
+    });
+    await Promise.all(updateShowCard);
+  }
+
+  const reset = async () => {
+    const data = [];
+    fs.writeFileSync(playersFilePath, JSON.stringify(data));
+  }
+
 module.exports = {
   getPlayers,
   getPlayer,
@@ -286,5 +299,7 @@ module.exports = {
   updateActivePlayer,
   resetPlayerCallRaise,
   updateWinners,
-  start
+  start,
+  hideCards,
+  reset
 };

@@ -158,6 +158,10 @@ const players = require('./players.js');
       try {
         var data = fs.readFileSync(dealerFilePath);
         data = JSON.parse(data);
+        data.flop = [];
+        data.turn = [];
+        data.river = [];
+        data.players = {};
         var availableCards = await getAvailableCards();
         // console.log('gonna get playsers...');
         // var pl = await players.getPlayers();
@@ -233,11 +237,6 @@ const players = require('./players.js');
     try {
         var data = fs.readFileSync(dealerFilePath);
         data = JSON.parse(data)
-        data.flop = [];
-        data.river = [];
-        data.turn = [];
-        data.burnt = [];
-        data.players = [];
         data.isStarted = true;
         data.readyToDeal = true;
         const newDealer = data;
@@ -322,7 +321,7 @@ const openTable = async () => {
         data.river = [];
         data.turn = [];
         data.burnt = [];
-        data.players = [];
+        data.players = {};
         data.history = [];
         data.isStarted = false;
         data.readyToDeal = false;
@@ -349,7 +348,7 @@ const closeTable = () => {
         data.river = [];
         data.turn = [];
         data.burnt = [];
-        data.players = [];
+        data.players = {};
         data.history = [];
         data.isStarted = false;
         data.readyToDeal = false;
@@ -360,6 +359,27 @@ const closeTable = () => {
         console.log(e);
         return false;
     }
+}
+
+const isGameStarted = async () => {
+  var data = fs.readFileSync(dealerFilePath);
+  data = JSON.parse(data);
+  return data.isStarted;
+}
+
+const toSend = async (players, player) => {
+  console.log('client', player)
+  var data = fs.readFileSync(dealerFilePath);
+  data = JSON.parse(data);
+  var playerCards = data.players;
+  players.forEach(pl => {
+    var show = pl.showCard;
+    if (!show && pl.id!==player.id) {
+      delete playerCards[pl.id];
+    }
+  });
+  data.players = playerCards;
+  return data;
 }
 
 module.exports = {
@@ -376,5 +396,7 @@ module.exports = {
     addHistory,
     openTable,
     closeTable,
-    isReadyToDeal
+    isReadyToDeal,
+    isGameStarted,
+    toSend
 };

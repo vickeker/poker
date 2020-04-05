@@ -17,6 +17,7 @@ server.listen(webSocketsServerPort, function() {
         + webSocketsServerPort);
 });
 
+//  websocket servier
 var wsServer = new webSocketServer({
     httpServer: server
 });
@@ -31,7 +32,6 @@ function htmlEntities(str) {
 }
 
 async function next (id) {
-    console.log('processing next player...');
     var pls = await players.getPlayers();
     pls = pls.filter(a => a.isActive);
     var winner = null;
@@ -52,15 +52,12 @@ async function next (id) {
             var index = nextPlayerIndex;
             for (var i=0;i<=playing.length-1;i++) {
                 var pl = playing[index];
-                console.log(index);
-                console.log(pl)
                 if (pl.chipValue > 0) {
                     nextPlayer = pl;
                     break;
                 }
                 index = index + 1 <= playing.length -1 ? index + 1 : 0;
             }
-            console.log('next player', nextPlayer);
             if(!nextPlayer) {
                 // all players are all-in
                 isEndOfPhase = true;
@@ -73,11 +70,9 @@ async function next (id) {
                     (!nextPlayer.call && !nextPlayer.raise && !nextPlayer.check)) {
                         // Next valid player hasnt call/fold after raise
                         // or hasnt make any action yet
-                        console.log('next player needs to play');
                         isEndOfPhase = false;
                     } else if (nextPlayer.raise > 0 && nextPlayer.betValue === maxBetPlayer) {
                         // Next valid player raised and has biggest bet => end of turn
-                        console.log('next player has raised and is maxbet');
                         isEndOfPhase = true;
                     } else {
                         isEndOfPhase = true;
@@ -93,7 +88,7 @@ async function next (id) {
             if (cards.river.length > 0 || winner) {
                 console.log('end of hand')
                 // if last phase of game, find winner, and reset table
-                var winners = await dealer.updateWinner(pls)
+                var winners = await dealer.updateWinner(pls);
                 await players.updateWinners(winners);
                 await players.updateActivePlayer();
                 await dealer.reset();
@@ -128,6 +123,13 @@ async function next (id) {
 
 }
 
+// broadcast video
+wsServer.broadcast = function(data) {
+    for(var i in clients) {
+        clients[i].sendUTF(data);
+    }
+};
+
 wsServer.on('request', function(request) {
     console.log((new Date()) + ' Connection from origin '
         + request.origin + '.');
@@ -139,22 +141,36 @@ wsServer.on('request', function(request) {
     // we need to know client index to remove them on 'close' event
     var index = clients.push(connection) - 1;
     var playerName = false;
-    console.log((new Date()) + ' Connection accepted.');
+    console.log((new Date()) + ' Connection accepted for connectionIndex', index);
 
     // user sent some message
     connection.on('message', async function(message) {
         if (message.type === 'utf8') { // accept only text
             var payload = JSON.parse(message.utf8Data);
-            console.log(payload)
+            console.log(`message received from ${payload.connectionIndex}`, payload)
             var id = payload.playerId
-            var name = payload.name;
             var action = payload.action;
             var value = payload.value;
             var data = payload.data;
             var result = {};
             var error = [];
-        // first message sent by user is their name
-            if (playerName === false && name) {
+            var authorConnectionIndex = payload.authorConnectionIndex;
+
+            if (payload.action === 'ice' || payload.action === 'sdp') {
+                var obj = {
+                    time: (new Date()).getTime(),
+                    payload: payload,
+                    author: playerName,
+                    authorConnectionIndex: authorConnectionIndex
+                };
+                // broadcast message to all connected clients
+                var json = JSON.stringify({ type:'message', data: obj });
+                wsServer.broadcast(json);
+                return;
+            }
+            // first message sent by user is their name
+            if (action === 'register') {
+                var name = payload.value;
                 // remember user name
                 console.log((new Date()) + ' Player is connected as: ' + name);
                 
@@ -163,129 +179,146 @@ wsServer.on('request', function(request) {
                 if (existingPlayers.length === 0) {
                     // opening table
                     await dealer.openTable();
-
                 }
-                console.log('players', existingPlayers);
-                var isNewPlayer = existingPlayers.filter(a => a.name === name).length === 0;
-                
-                if (isNewPlayer) {
-                    console.log('new player');
+                var player = existingPlayers.filter(a => a.name === name);
+                var playerId;
+                player = player && player.length > 0 && player[0];
+                var isGameStarted = await dealer.isGameStarted();
+                if (!player) {
                     playerName = name;
+                    playerId= existingPlayers.length + 1;
                 // add players
                     await players.addPlayer({
-                        id: existingPlayers.length + 1,
-                        name: name
+                        id: playerId,
+                        name: name,
+                        isActive: !isGameStarted,
+                        connectionIndex: index
                     });
+                } else {
+                    // existing player: update connectionIndex
+                    playerId=player.id;
+                    await players.updatePlayer({
+                        id: playerId,
+                        connectionIndex: index
+                    })
                 }
-            } else if (action && value && id) { // log and broadcast the message
-                console.log((new Date()) + ' Received Message from '
-                            + id + ': ' + message.utf8Data);
 
-                // postData
-                if (action === 'start') {
-                    value = parseInt(value);
-                    // start game => reset player and deal cards
-                    var playerReady = await players.start(value);
-                    var dealerReady = await dealer.reset();
-                    if (playerReady && dealerReady) {
-                        await players.moveDealer(id);
-                        await dealer.addHistory({
-                            action:'start', timestamp: Date.now()
-                        });
-                    } else {
-                        error.push('Not ready to start');
-                    }
-                } else if (action === 'reset') {
-                    console.log('reset')
-                    await players.start(0);
-                    await dealer.closeTable();
+                // send response to emitter only
+                var response = {
+                    playerRegistered: true,
+                    connectionIndex: index,
+                    playerId: playerId
+                };
+                var obj = {
+                    time: (new Date()).getTime(),
+                    payload: response,
+                    author: name,
+                    authorConnectionIndex: index
+                };
+                var json = JSON.stringify({ type:'message', data: obj });
+                clients[index].sendUTF(json);
+
+            } else if (action === 'start') {
+                value = parseInt(value);
+                // start game => reset player and deal cards
+                var playerReady = await players.start(value);
+                var dealerReady = await dealer.reset();
+                if (playerReady && dealerReady) {
+                    await players.moveDealer(id);
                     await dealer.addHistory({
-                        action:'reset', timestamp: Date.now()
+                        action:'start', timestamp: Date.now()
                     });
-                } else if (action === 'pause') {
-                    // put the game in pause => stop blind timer    
-                
-                } else if (action === 'deal') {
-                    // start turn, deal new cards and move dealer
-                    if (dealer.isReadyToDeal()) {
-                        var updatedPlayers = await players.getPlayers();
-                        await dealer.dealPlayerCard(updatedPlayers);
-                        await dealer.addHistory({
-                            action:'deal', timestamp: Date.now()
-                        });
-                    }
-                    // raise, call, fold
-                } else if (action === 'raise') {
-                    value = parseInt(value);
-                    // update chipValue value and change player
-                    var player = await players.getPlayer(id);
-                    var pls = await players.updatePlayer({
-                        id: id,
-                        raise: value,
-                        betValue: player.betValue + value,
-                        chipValue: player.chipValue - value,
-                        call: false,
-                        check: false,
-                        isPlayerTurn: false
-                    });
-                    await next(id);
-                } else if (action === 'call') {
-                    value = parseInt(value);
-                    // update chipValue value and change player
-                    var player = await players.getPlayer(id);
-                    console.log('value', value);
-                    console.log('old chip value', player.chipValue);
-                    console.log('old bet', player.betValue);
-                    console.log('new chipValue', player.chipValue - (value - player.betValue));
-                    var pls = await players.updatePlayer({
-                        id: id,
-                        betValue: value,  // maxbet
-                        call: true,
-                        chipValue: player.chipValue - (value - player.betValue),
-                        raise: 0,
-                        check: false,
-                        isPlayerTurn: false
-                    });
-                    console.log('player after update', pls.find(a=>a.id===id));
-                    await next(id);                
-                } else if (action === 'fold') {
-                    // update fold and change player
-                    var player = await players.getPlayer(id);
-                    var pls = await players.updatePlayer({
-                        id: id,
-                        fold: true,
-                        call: false,
-                        raise: 0,
-                        check: false,
-                        isPlayerTurn: false
-                    });
-                    await next(id);
-                } else if (action === 'check') {
-                    var pls = await players.updatePlayer({
-                        id: id,
-                        raise: 0,
-                        call: false,
-                        check: true,
-                        isPlayerTurn: false
-                    });
-                    await next(id);
+                } else {
+                    error.push('Not ready to start');
                 }
+            } else if (action === 'reset') {
+                console.log('reset')
+                await players.reset();
+                await dealer.closeTable();
+                await dealer.addHistory({
+                    action:'reset', timestamp: Date.now()
+                });
+            } else if (action === 'pause') {
+                // put the game in pause => stop blind timer    
+            
+            } else if (action === 'deal') {
+                // start turn, deal new cards and move dealer
+                if (dealer.isReadyToDeal()) {
+                    var updatedPlayers = await players.getPlayers();
+                    await dealer.dealPlayerCard(updatedPlayers);
+                    await players.hideCards();
+                    await dealer.addHistory({
+                        action:'deal', timestamp: Date.now()
+                    });
+                }
+                // raise, call, fold
+            } else if (action === 'raise') {
+                value = parseInt(value);
+                // update chipValue value and change player
+                var player = await players.getPlayer(id);
+                var pls = await players.updatePlayer({
+                    id: id,
+                    raise: value,
+                    betValue: player.betValue + value,
+                    chipValue: player.chipValue - value,
+                    call: false,
+                    check: false,
+                    isPlayerTurn: false
+                });
+                await next(id);
+            } else if (action === 'call') {
+                value = parseInt(value);
+                // update chipValue value and change player
+                var player = await players.getPlayer(id);
+                var pls = await players.updatePlayer({
+                    id: id,
+                    betValue: value,  // maxbet
+                    call: true,
+                    chipValue: player.chipValue - (value - player.betValue),
+                    raise: 0,
+                    check: false,
+                    isPlayerTurn: false
+                });
+                await next(id);                
+            } else if (action === 'fold') {
+                // update fold and change player
+                var player = await players.getPlayer(id);
+                var pls = await players.updatePlayer({
+                    id: id,
+                    fold: true,
+                    call: false,
+                    raise: 0,
+                    check: false,
+                    isPlayerTurn: false
+                });
+                await next(id);
+            } else if (action === 'check') {
+                var pls = await players.updatePlayer({
+                    id: id,
+                    raise: 0,
+                    call: false,
+                    check: true,
+                    isPlayerTurn: false
+                });
+                await next(id);
             }
 
-            // getData to send to client
+            // getPlayers to send to all client
             result['players'] = await players.getPlayers();
-            result['dealer'] = await dealer.getCards();
-            // console.log('result', result);
-            console.log('sending result...')
-            // we want to keep history of all sent messages
-            var obj = {
-                time: (new Date()).getTime(),
-                payload: result,
-                author: playerName,
-            };
-            // broadcast message to all connected clients
-            var json = JSON.stringify({ type:'message', data: obj });
             for (var i=0; i < clients.length; i++) {
+                // only send cards for this client
+                var player = result['players'].filter(a => a.connectionIndex === i)[0];
+                result['dealer'] = player ? await dealer.toSend(result['players'], player) : await dealer.getCards();
+                console.log('sending result...')
+                // we want to keep history of all sent messages
+                var obj = {
+                    time: (new Date()).getTime(),
+                    payload: result,
+                    author: playerName,
+                    authorConnectionIndex: i
+                };
+                // broadcast message to all connected clients
+                var json = JSON.stringify({ type:'message', data: obj });
                 clients[i].sendUTF(json);
             }
         }
