@@ -1,25 +1,44 @@
+var fs = require('fs');
+// websocket and http servers
+const WebSocket = require('ws');
+var WebSocketServer = WebSocket.Server;
+var https = require('https');
 const players = require('./routes/players.js');
 const dealer = require('./routes/dealer.js');
 
-// websocket and http servers
-var webSocketsServerPort = 3001;
-var webSocketServer = require('websocket').server;
-var http = require('http');
 var clients = [];
+var webSocketsServerPort = 3001;
+
+// Yes, TLS is required
+const serverConfig = {
+    key: fs.readFileSync('key.pem'),
+    cert: fs.readFileSync('cert.pem'),
+  };
+
+// Create a server for the client html page
+const handleRequest = function(request, response) {
+    // Render the single client html file for any request the HTTP server receives
+    console.log('request received: ' + request.url);
+  
+    if(request.url === '/ok') {
+      response.send(req, 'ok', 200);
+    }
+  };
+  
 
 /**
- * HTTP server
+ * HTTPS server
  */
-var server = http.createServer(function(request, response) {
-});
-server.listen(webSocketsServerPort, function() {
+const httpsServer = https.createServer(serverConfig, handleRequest);
+
+httpsServer.listen(webSocketsServerPort, function() {
     console.log((new Date()) + " Server is listening on port "
         + webSocketsServerPort);
 });
 
 //  websocket servier
-var wsServer = new webSocketServer({
-    httpServer: server
+var wsServer = new WebSocketServer({
+    server: httpsServer
 });
 
 /**
