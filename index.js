@@ -139,9 +139,16 @@ async function next (id) {
  *
 */
 // broadcast video
-wsServer.broadcast = function(data) {
-    for(var i in clients) {
-        clients[i].send(data);
+wsServer.broadcast = function(data, peerConnectionIndex) {
+    // data can be send to a specific peer or to everybody
+    if (peerConnectionIndex) {
+        console.log('sending data to', peerConnectionIndex);
+        clients[peerConnectionIndex].send(data);
+    } else {
+        console.log('sending data to everyone');
+        for(var i in clients) {
+            clients[i].send(data);
+        }
     }
 };
 
@@ -179,11 +186,12 @@ wsServer.on('connection', function(connection) {
                 time: (new Date()).getTime(),
                 payload: payload,
                 author: playerName,
-                authorConnectionIndex: authorConnectionIndex
+                authorConnectionIndex: authorConnectionIndex,
             };
             // broadcast message to all connected clients
             var json = JSON.stringify({ type:'message', data: obj });
-            wsServer.broadcast(json);
+            var peerConnectionIndex = payload.peerConnectionIndex || null;
+            wsServer.broadcast(json, peerConnectionIndex);
             return;
         } else if (action === 'register') {
             // first message sent by user is their name
