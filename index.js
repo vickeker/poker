@@ -177,7 +177,7 @@ wsServer.on('connection', function(connection) {
         var action = payload.action;
         var value = payload.value;
         var data = payload.data;
-        var result = {};
+        var result = {};    
         var error = [];
         var authorConnectionIndex = payload.authorConnectionIndex;
 
@@ -242,7 +242,12 @@ wsServer.on('connection', function(connection) {
             };
             var json = JSON.stringify({ type:'message', data: obj });
             clients[index].send(json);
-
+            return;
+        } else if (action === 'registered') {
+            // player register remotely successfully, share with other players
+            if (!value) return;
+            // Here if we want to do something special
+            console.log('remote register', authorConnectionIndex);
         } else if (action === 'start') {
             value = parseInt(value);
             // start game => reset player and deal cards
