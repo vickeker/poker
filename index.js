@@ -114,7 +114,7 @@ async function next (id) {
             } else if (cards.flop.length > 0) {
                 console.log('dealing turn...')
                 // deal turn
-                await dealer.dealerTurn();
+                await dealer.dealTurn();
                 await players.resetPlayerCallRaise();
                 await players.nextPlayer(id);
             } else {

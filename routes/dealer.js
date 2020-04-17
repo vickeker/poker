@@ -3,7 +3,6 @@ const path = require('path');
 var Hand = require('pokersolver').Hand;
 
 const dealerFilePath = path.join(__dirname, './dealer.json')
-const players = require('./players.js');
 
   const getCards = async () => {
     try {
@@ -41,7 +40,7 @@ const players = require('./players.js');
         return availableCards;
     } catch (e) {
         throw e;
-      }
+    }
   }
 
   const dealCard = async (burn) => {
@@ -90,16 +89,36 @@ const players = require('./players.js');
   };
 
   const dealFlop = async () => {
-    var flopMap = [0, 1, 2];
     try {
-        var promises = flopMap.map(async index => {
-            return dealCard();
-        });
-        var flop = await Promise.all(promises);
-        var data = fs.readFileSync(dealerFilePath);
+        // 
+        var flop = [];
+        var data;
+        var newDealer;
+        var card = await dealCard(true)
+        flop.push(card);
+        data = fs.readFileSync(dealerFilePath);
         data = JSON.parse(data);
         data.flop = flop;
-        const newDealer = data;
+        newDealer = data;
+        fs.writeFileSync(dealerFilePath, JSON.stringify(newDealer));        
+        card = await dealCard(true)
+        flop.push(card);
+        data = fs.readFileSync(dealerFilePath);
+        data = JSON.parse(data);
+        data.flop = flop;
+        newDealer = data;
+        fs.writeFileSync(dealerFilePath, JSON.stringify(newDealer));
+        card = await dealCard(true)
+        flop.push(card);
+        data = fs.readFileSync(dealerFilePath);
+        data = JSON.parse(data);
+        data.flop = flop;
+        newDealer = data;
+        fs.writeFileSync(dealerFilePath, JSON.stringify(newDealer));
+        data = fs.readFileSync(dealerFilePath);
+        data = JSON.parse(data);
+        data.flop = flop;
+        newDealer = data;
         fs.writeFileSync(dealerFilePath, JSON.stringify(newDealer));
       return flop;
     } catch (e) {
@@ -109,7 +128,7 @@ const players = require('./players.js');
 
   const dealRiver = async () => {
     try {
-        var river = await dealCard();
+        var river = await dealCard(true);
         var data = fs.readFileSync(dealerFilePath);
         data = JSON.parse(data);
         data.river = [river];
@@ -121,9 +140,9 @@ const players = require('./players.js');
     }
   };
 
-  const dealerTurn = async () => {
+  const dealTurn = async () => {
     try {
-        var turn = await dealCard();
+        var turn = await dealCard(true);
         var data = fs.readFileSync(dealerFilePath);
         data = JSON.parse(data);
         data.turn = [turn];
@@ -153,6 +172,7 @@ const players = require('./players.js');
       try {
         var data = fs.readFileSync(dealerFilePath);
         data = JSON.parse(data);
+        data.burnt = [];
         data.flop = [];
         data.turn = [];
         data.river = [];
@@ -274,10 +294,21 @@ const players = require('./players.js');
     });
     var winner = Hand.winners(hands);
     winner = Array.isArray(winner) ? winner : [winner];
+
+    // compare 2 hands (7 cards) and return true if identical
+    var compareHand = (a, b) => {
+      var result = true;
+      a.forEach((c, index) => {
+        result = result && c.value === b[index].value && c.suit === b[index].suit
+      })
+      return result
+    }
+
+    // return array of the ids of the player with winning hand
     var winnerPlayers = winner.map((value) => {
         var winnerIndex = -1;
         hands.forEach((hand, key) => {
-            if(hand.toString() === value.toString()){
+            if(compareHand(hand.cardPool, value.cardPool)){
                 winnerIndex = key;
             }
         });
@@ -368,11 +399,22 @@ const toSend = async (players, player) => {
   return data;
 }
 
+const resetCards = async () => {
+  var data = fs.readFileSync(dealerFilePath);
+  data = JSON.parse(data);
+  data.burnt = [];
+  data.flop = [];
+  data.turn = [];
+  data.river = [];
+  data.players = {};
+  fs.writeFileSync(dealerFilePath, JSON.stringify(data));
+}
+
 module.exports = {
     getCards,
     dealCard,
     dealFlop,
-    dealerTurn,
+    dealTurn,
     dealRiver,
     reset,
     dealPlayerCard,
@@ -384,5 +426,7 @@ module.exports = {
     closeTable,
     isReadyToDeal,
     isGameStarted,
-    toSend
+    toSend,
+    getAvailableCards,
+    resetCards
 };
